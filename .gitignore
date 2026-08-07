@@ -1,0 +1,71 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Node.js
+node_modules
+dist
+dist-ssr
+*.local
+electron/oss-files/images
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Python build and virtual environments
+**/dist/
+**/build/
+.venv/
+venv/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+Thumbs.db
+
+# Environment and secrets
+.env
+*.key
+*.pem
+**/cookies.txt
+
+# Python testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# VideoCaptioner runtime data
+videocaptioner/resource/bin/
+!videocaptioner/resource/bin/bin_environment.txt
+videocaptioner/AppData/
+videocaptioner/work-dir/
+videocaptioner/*.srt
+videocaptioner/*.mp4
+videocaptioner/_version.py
+viedo-notes
+
+# Claude Code
+.claude/
+CLAUDE.md
+
+forge_full_export.sql
+
+# Forge video notes runtime media
+forge-server/public/video-notes/
+*.mp4
+*.srt

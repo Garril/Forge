@@ -1,0 +1,87 @@
+{
+  "websites": [
+    {
+      "id": "1777893016941q7fm",
+      "name": "Grsai",
+      "url": "https://grsai.com/zh",
+      "token": "d8de042f6a8d4aa1b6ba1663dcaedcac",
+      "apiKey": "sk-6ebb5f3468a0436eb539b0934fccf6d1"
+    }
+  ],
+  "apis": [
+    {
+      "id": "1777894592454tdpk",
+      "websiteId": "1777893016941q7fm",
+      "apiName": "查询积分",
+      "baseURL": "https://grsai.dakka.com.cn",
+      "path": "/client/openapi/getCredits",
+      "methods": "POST",
+      "responseMethod": "JSON",
+      "headers": "",
+      "request": "{\n  \"token\": {token}\n}",
+      "response": "{\n  \"code\": 0,\n  \"data\": {\n    \"credits\": 10000\n  },\n  \"msg\": \"success\"\n}"
+    },
+    {
+      "id": "1777894816969zdv9",
+      "websiteId": "1777893016941q7fm",
+      "apiName": "查询模型状态",
+      "baseURL": "https://grsai.dakka.com.cn",
+      "path": "/client/common/getModelStatus?model={modelName}",
+      "methods": "GET",
+      "responseMethod": [
+        "JSON"
+      ],
+      "headers": "",
+      "request": "",
+      "response": "{\n  \"code\": 0,\n  \"data\": {\n    \"error\": \"\",\n    \"status\": true\n  },\n  \"msg\": \"success\"\n}",
+      "notes": "modelName可选：\ngpt-image-2\ngpt-image-2-vip\nnano-banana-2\nnano-banana-2-cl\nnano-banana-2-4k-cl\nnano-banana-pro\nnano-banana-pro-vt\nnano-banana-pro-cl\nnano-banana-pro-vip\nnano-banana-pro-4k-vip\nnano-banana-fast\nnano-banana\ngemini-3.1-pro\ngemini-3-pro\ngemini-2.5-pro"
+    },
+    {
+      "id": "1777896810725kvfd",
+      "websiteId": "1777893016941q7fm",
+      "apiName": "chat-ai",
+      "baseURL": "https://grsai.dakka.com.cn",
+      "path": "/v1/chat/completions",
+      "methods": "POST",
+      "responseMethod": [
+        "stream 或 回调接口",
+        "JSON"
+      ],
+      "headers": "{\n  \"Content-Type\": \"application/json\",\n  \"Authorization\": \"Bearer {api-key}\"\n}",
+      "request": "{\n  \"model\": \"gemini-3.1-pro\",\n  \"stream\": true,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a helpful assistant.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Hello!\"\n    }\n  ]\n}",
+      "response": "{\n  \"id\": \"xxxx\",\n  \"object\": \"chat.completion\",\n  \"created\": 1741569952,\n  \"model\": \"gemini-3.1-pro\",\n  \"choices\": [\n    {\n      \"index\": 0,\n      \"delta\": {\n        \"role\": \"assistant\",\n        \"content\": \"Hello! How can I assist you today?\",\n        \"refusal\": null,\n        \"annotations\": []\n      },\n      \"finish_reason\": \"stop\"\n    }\n  ]\n}",
+      "notes": ""
+    },
+    {
+      "id": "1777904445272emsk",
+      "websiteId": "1777893016941q7fm",
+      "apiName": "GPT-IMAGE-2",
+      "baseURL": "https://grsai.dakka.com.cn",
+      "path": "/v1/draw/completions",
+      "methods": "POST",
+      "responseMethod": [
+        "JSON",
+        "stream 或 回调接口"
+      ],
+      "headers": "{\n  \"Content-Type\": \"application/json\",\n  \"Authorization\": \"Bearer {api-key}\"\n}",
+      "request": "{\n  \"model\": \"gpt-image-2\",\n  \"prompt\": \"描述您想要生成的图像内容的提示词\",\n  \"aspectRatio\": \"1:1\",\n  \"urls\": [\n    \"https://example.com/example1.png\",\n    \"https://example.com/example2.png\"\n  ],\n  \"webHook\": \"https://example.com/callback\",\n  \"shutProgress\": false\n}",
+      "response": "{\n  \"id\": \"xxxxx\",\n  \"progress\": 100,\n  \"results\": [\n    {\n      \"url\": \"https://example.com/example.png\"\n    }\n  ],\n  \"status\": \"succeeded\",\n  \"failure_reason\": \"\",\n  \"error\": \"\"\n}",
+      "notes": "aspectRatio（选填）\n类型: string  示例: \"1:1\"\n描述: 输出图像比例\n可选：\"auto\"、\"1:1\"、\"3:2\"、\"2:3\"、\"16:9\"、\"9:16\"、5:4、4:5、\"4:3\"、\"3:4\"、\"21:9\"、\"9:21\"、\"1:3\"、\"3:1\"、\"2:1\"、\"1:2\" 同时支持像素值填写，例如：\"1024x1024\"\ngpt-image-2-vip模型支持定义2k以上的像素值，请参考openai官方文档支持的像素值\n\nquality（选填）\n类型: string，示例: \"auto\"\n描述: 质量: \"auto\"、\"low\"、\"medium\"、\"high\"\n\nwebHook（选填）\n类型: string，示例: \"https://your-webhook-url.com/callback\"\n描述: 进度与结果的回调链接，接口默认以Stream流式响应进行回复\n如果填了webHook，进度与结果则以Post请求回调地址的方式进行回复\n请求头: Content-Type: application/json\n-------\n如果不使用回调，而使用轮询result接口方式获取结果，需要接口立即返回一个id\n则webHook参数填\"-1\"，那么会立即返回一个id\n\nshutProgress（选填）\n类型: boolean，示例: false，默认false\n描述: 关闭进度回复，直接回复最终结果,建议搭配webHook使用\n\nwebHook结果---(使用流式响应请跳过该步骤)\n(请求后该结果会返回一个id，用于对应回调数据)\n(使用流式响应请跳过该步骤)\n{\n  \"code\": 0,\n  \"msg\": \"success\",\n  \"data\": {\n    \"id\": \"id\"\n  }\n}\n\n\n"
+    },
+    {
+      "id": "1777904512632pkv8",
+      "websiteId": "1777893016941q7fm",
+      "apiName": "获取请求结果接口",
+      "baseURL": "https://grsai.dakka.com.cn",
+      "path": "/v1/draw/result",
+      "methods": "POST",
+      "responseMethod": [
+        "JSON"
+      ],
+      "headers": "",
+      "request": "{\n  \"id\": \"xxxxx\"\n}",
+      "response": "{\n  \"code\": 0,\n  \"data\": {\n    \"id\": \"xxx\",\n    \"progress\": 100,\n    \"status\": \"succeeded\",\n    \"failure_reason\": \"\",\n    \"error\": \"\",\n    \"results\": [\n      {\n        \"url\": \"https://example.com/example.png\"\n      }\n    ]\n  },\n  \"msg\": \"success\"\n}",
+      "notes": ""
+    }
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "name": "forge-client",
+  "private": true,
+  "version": "1.0.0",
+  "author": "Forge",
+  "main": "electron/main.js",
+  "description": "Forge Management System",
+  "scripts": {
+    "dev": "vite",
+    "preview": "vite preview",
+    "sync": "git reset --hard origin/main",
+    "start": "concurrently \"npm run dev\" \"npm run se\"",
+    "se": "electron .",
+    "build": "vite build && electron-builder",
+    "create-icon": "npx electron-icon-builder -i ./public/source.png -o ./public/",
+    "lint": "eslint . --ext .vue,.js",
+    "release": "vite build && electron-builder --publish always",
+    "git-version": "npm run release",
+    "git-tag": "node scripts/tag-version.js"
+  },
+  "build": {
+    "appId": "cn.forge",
+    "productName": "Forge",
+    "executableName": "Forge",
+    "extraMetadata": {
+      "name": "Forge"
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "public/icons/**/*",
+      "package.json"
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "Forge",
+      "repo": "Forge",
+      "private": true
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/icons/win/icon.ico",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "public/icons/mac/icon.icns"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "installerIcon": "public/icons/win/icon.ico",
+      "uninstallerIcon": "public/icons/win/icon.ico",
+      "language": "2052"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.exe"
+    },
+    "electronDownload": {
+      "mirror": "https://npmmirror.com/mirrors/electron/"
+    },
+    "compression": "maximum",
+    "extraResources": [
+      {
+        "from": "public/icons",
+        "to": "icons"
+      },
+      {
+        "from": "../forge-server",
+        "to": "forge-server",
+        "filter": [
+          "**/*",
+          "!.git",
+          "!node_modules",
+          "!package-lock.json"
+        ]
+      }
+    ],
+    "extraFiles": [
+      {
+        "from": "../forge-server/.env",
+        "to": "forge-server/.env"
+      }
+    ]
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
+    "axios": "^1.13.5",
+    "dotenv": "^16.4.7",
+    "echarts": "^6.0.0",
+    "element-plus": "^2.9.5",
+    "exceljs": "^4.4.0",
+    "file-saver": "^2.0.5",
+    "lightweight-charts": "^5.2.0",
+    "print-js": "^1.6.0",
+    "sortablejs": "^1.15.6",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "commitizen": "^4.3.1",
+    "concurrently": "^9.1.2",
+    "cz-customizable": "^7.4.0",
+    "electron": "^35.0.0",
+    "electron-builder": "^25.1.8",
+    "eslint": "^9.3.0",
+    "html2canvas": "^1.4.1",
+    "unplugin-auto-import": "^19.1.0",
+    "unplugin-vue-components": "^28.4.0",
+    "vite": "^6.1.0"
+  }
+}

@@ -1,0 +1,63 @@
+# 应用标识符，与 package.json 中一致
+appId: cn.garril.Forge
+# 产品名
+productName: Forge
+# 版权信息
+copyright: Copyright © Powered by Garril
+
+# 目录配置
+directories:
+  output: dist # 输出目录
+  buildResources: build # 构建资源目录（如果不存在可留空或注释掉）
+
+# 文件包含与排除规则（关键配置，确保与您的项目结构匹配）
+files:
+  - "dist/**/*" # 包含 Vite 构建后的输出
+  - "electron/**/*" # 包含 electron 主进程文件
+  - "public/icons/**/*" # 包含图标资源
+  - "package.json" # 包含 package.json
+  - "!**/.vscode/*" # 排除开发工具文件 [4,5,7](@ref)
+  - "!**/*.map" # 排除源码映射文件以减小体积
+  - "!src/*" # 排除源代码目录（通常已被 Vite 处理）[4,5](@ref)
+
+# 启用 ASAR 打包以提高安全性和加载速度 [1,4,7](@ref)
+asar: true
+# 压缩级别
+compression: maximum
+
+# 额外资源文件配置（与 package.json 中 extraResources 对应）
+extraResources:
+  - from: "public/icons"
+    to: "icons"
+
+# 发布配置（用于自动更新）[3,6](@ref)
+publish:
+  provider: github
+  owner: Garril
+  repo: Forge
+
+# Windows 平台配置 [2,5,6](@ref)
+win:
+  target: nsis
+  executableName: Forge # 生成的可执行文件名称
+  icon: public/icons/win/icon.ico
+  artifactName: "${productName}-Setup-${version}.${ext}"
+
+# NSIS 安装程序配置 [2,5,6](@ref)
+nsis:
+  oneClick: false # 非一键安装，允许用户选择安装选项
+  allowElevation: true # 允许权限提升
+  allowToChangeInstallationDirectory: true # 允许修改安装目录
+  createDesktopShortcut: true # 创建桌面快捷方式
+  installerIcon: public/icons/win/icon.ico # 安装程序图标
+  uninstallerIcon: public/icons/win/icon.ico # 卸载程序图标
+  language: 2052 # 中文
+
+# macOS 平台配置（根据您的配置补充）
+mac:
+  target: dmg
+  icon: public/icons/mac/icon.icns
+
+# Electron 下载镜像，加速国内下载 [2,7](@ref)
+electronDownload:
+  mirror: "https://npmmirror.com/mirrors/electron/"
