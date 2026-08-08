@@ -92,6 +92,19 @@
           "!node_modules",
           "!package-lock.json"
         ]
+      },
+      {
+        "from": "../forge-server/node_modules",
+        "to": "forge-server/node_modules"
+      },
+      {
+        "from": "../video-captioner",
+        "to": "video-captioner",
+        "filter": [
+          "**/*",
+          "!.git",
+          "!__pycache__"
+        ]
       }
     ],
     "extraFiles": [

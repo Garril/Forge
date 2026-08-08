@@ -2,11 +2,57 @@
 const path = require('path');
 const fs = require('fs');
 const fsAsync = require('fs').promises;
+const { spawn } = require('child_process');
+const net = require('net');
 const dotenv = require('dotenv');
 
 dotenv.config({ path: '.env.development' });
 
 let mainWindow = null;
+let serverProcess = null;
+
+const SERVER_PORT = Number(process.env.PORT || 5888);
+const getServerRoot = () => app.isPackaged
+  ? path.join(process.resourcesPath, 'forge-server')
+  : path.resolve(__dirname, '../../forge-server');
+const isServerAvailable = () => new Promise(resolve => {
+  const socket = net.createConnection({ host: '127.0.0.1', port: SERVER_PORT });
+  const finish = available => {
+    socket.destroy();
+    resolve(available);
+  };
+  socket.setTimeout(800);
+  socket.once('connect', () => finish(true));
+  socket.once('timeout', () => finish(false));
+  socket.once('error', () => finish(false));
+});
+const startForgeServer = async () => {
+  if (await isServerAvailable()) return true;
+  const serverRoot = getServerRoot();
+  const serverEntry = path.join(serverRoot, 'src', 'app.js');
+  if (!fs.existsSync(serverEntry)) {
+    console.error(`Forge Server entry not found: ${serverEntry}`);
+    return false;
+  }
+  const nodeCommand = process.execPath;
+  serverProcess = spawn(nodeCommand, [serverEntry], {
+    cwd: serverRoot,
+    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+    windowsHide: true,
+    stdio: 'ignore'
+  });
+  serverProcess.once('error', error => console.error('Failed to start Forge Server:', error.message));
+  serverProcess.once('exit', (code, signal) => {
+    if (serverProcess) console.error(`Forge Server exited: code=${code}, signal=${signal || 'none'}`);
+    serverProcess = null;
+  });
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    if (await isServerAvailable()) return true;
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  console.error('Forge Server did not become available on port', SERVER_PORT);
+  return false;
+};
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -73,6 +119,8 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
+  const serverStarted = await startForgeServer();
+  if (!serverStarted) console.warn('Forge Server is unavailable; API requests may fail.');
   createWindow();
 
   // 快捷键锁屏事件支持
@@ -280,6 +328,13 @@ ipcMain.handle('update-lock-shortcut', (event, oldShortcut, newShortcut) => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
+  }
+});
+
+app.on('before-quit', () => {
+  if (serverProcess && !serverProcess.killed) {
+    serverProcess.kill();
+    serverProcess = null;
   }
 });
 

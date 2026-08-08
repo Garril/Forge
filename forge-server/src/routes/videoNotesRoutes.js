@@ -102,7 +102,8 @@ const providerRequest = (baseUrl, apiMethod, apiKey, pathname, method = 'GET', b
   const url = `${normalizedBase}${pathname}`;
   return requestJson(url, { method, headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' } }, body);
 };
-const PROJECT_ROOT = path.resolve(__dirname, '../../..');
+const SERVER_ROOT = path.resolve(__dirname, '../..');
+const PROJECT_ROOT = path.resolve(SERVER_ROOT, '..');
 const CAPTIONER_ROOT = path.join(PROJECT_ROOT, 'video-captioner');
 
 const DATA_ROOT = path.join(__dirname, '../../public/video-notes');
