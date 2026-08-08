@@ -130,18 +130,24 @@ const handleUnlock = async () => {
   }
   loading.value = true
   try {
-    const { data } = await axios.post('http://localhost:5888/api/settings/unlock', {
+    const { data } = await axios.post('http://127.0.0.1:5888/api/settings/unlock', {
       password: inputPassword.value
     })
     
     if (data.success) {
       ElMessage.success('解锁成功')
       const redirect = router.currentRoute.value.query.redirect || '/dashboard'
-      router.push(redirect)
+      await router.replace(redirect)
     } else {
       ElMessage.error(data.message || '密码错误')
     }
   } catch (error) {
+    console.error('[Unlock] request failed', {
+      url: error.config?.url,
+      code: error.code,
+      status: error.response?.status,
+      message: error.message
+    })
     ElMessage.error('服务未启动或连接异常')
   } finally {
     loading.value = false

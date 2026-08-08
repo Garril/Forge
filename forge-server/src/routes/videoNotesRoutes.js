@@ -10,8 +10,15 @@ const router = new Router({ prefix: '/api/video-notes' });
 const API_PRESETS_KEY = 'video_notes_api_presets';
 const defaultApiPresets = [
   { id: 'deepseek-official', name: 'DeepSeek 官方 API', apiBase: 'https://api.deepseek.com', apiMethod: 'responses', apiKey: '', model: 'deepseek-chat', prompt: '' },
-  { id: 'custom-openai-compatible', name: '其他 OpenAI 兼容服务', apiBase: '', apiMethod: 'responses', apiKey: '', model: '', prompt: '' }
+  { id: 'sensenova', name: 'SenseNova API', apiBase: 'https://token.sensenova.cn/v1', apiMethod: 'chat-completions', apiKey: '', model: 'SenseChat-5', prompt: '' }
 ];
+const normalizeApiPresets = presets => {
+  const filtered = (Array.isArray(presets) ? presets : []).filter(item => item.id !== 'custom-openai-compatible' && item.name !== '其他 OpenAI 兼容服务');
+  if (!filtered.some(item => item.id === 'sensenova')) {
+    filtered.push({ ...defaultApiPresets[1], updatedAt: Date.now() });
+  }
+  return filtered.map(item => ({ ...item, apiMethod: item.apiMethod || 'responses' }));
+};
 const parseApiPresets = value => {
   try {
     const parsed = JSON.parse(value);
@@ -30,12 +37,11 @@ const writeApiPresets = async presets => {
 
 router.get('/api-presets', async ctx => {
   try {
-    let presets = await readApiPresets();
-    if (!presets) {
-      presets = defaultApiPresets.map(item => ({ ...item, updatedAt: Date.now() }));
-      await writeApiPresets(presets);
-    }
-    presets = presets.map(item => ({ ...item, apiMethod: item.apiMethod || 'responses' }));
+    const storedPresets = await readApiPresets();
+    let presets = storedPresets
+      ? normalizeApiPresets(storedPresets)
+      : defaultApiPresets.map(item => ({ ...item, updatedAt: Date.now() }));
+    await writeApiPresets(presets);
     ctx.body = { success: true, data: presets };
   } catch (error) { ctx.status = 500; ctx.body = { success: false, message: error.message }; }
 });
@@ -98,10 +104,13 @@ const providerRequest = (baseUrl, apiMethod, apiKey, pathname, method = 'GET', b
 };
 const PROJECT_ROOT = path.resolve(__dirname, '../../..');
 const CAPTIONER_ROOT = path.join(PROJECT_ROOT, 'video-captioner');
+
 const DATA_ROOT = path.join(__dirname, '../../public/video-notes');
 const jobs = new Map();
 
 fs.ensureDirSync(DATA_ROOT);
+
+const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
 
 const run = (command, args, options = {}) => new Promise((resolve, reject) => {
   const commandArgs = command === pythonCommand ? ['-X', 'utf8', ...args] : args;
@@ -126,8 +135,15 @@ const run = (command, args, options = {}) => new Promise((resolve, reject) => {
   child.on('close', code => code === 0 ? resolve({ stdout, stderr }) : reject(new Error(stderr.trim() || stdout.trim() || `命令退出码 ${code}`)));
 });
 
-const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
 const COOKIE_ROOTS = [path.join(CAPTIONER_ROOT, 'AppData'), CAPTIONER_ROOT];
+const isNetscapeCookieFile = file => {
+  try {
+    const lines = fs.readFileSync(file, 'utf8').split(/\r?\n/).filter(line => line.trim() && !line.startsWith('#'));
+    return lines.length > 0 && lines.every(line => line.split('\t').length >= 7);
+  } catch {
+    return false;
+  }
+};
 const resolveCookieFile = url => {
   let kind = '';
   try {
@@ -136,7 +152,10 @@ const resolveCookieFile = url => {
     if (hostname === 'youtu.be' || hostname.includes('youtube.com')) kind = 'cookies_ytb.txt';
   } catch {}
   if (!kind) return null;
-  return COOKIE_ROOTS.map(root => path.join(root, kind)).find(file => fs.existsSync(file)) || null;
+  return COOKIE_ROOTS
+    .map(root => path.join(root, kind))
+    .find(file => fs.existsSync(file) && fs.statSync(file).size > 0 && isNetscapeCookieFile(file))
+    || null;
 };
 const safeName = value => String(value || '').replace(/[^\w\-.\u4e00-\u9fa5 ]/g, '_').slice(0, 100) || 'video';
 const job = (type, input = {}) => {
@@ -164,7 +183,18 @@ router.get('/status', async ctx => {
 router.post('/initialize', async ctx => {
   try {
     await run(pythonCommand, ['-m', 'pip', 'install', '-e', CAPTIONER_ROOT], { cwd: PROJECT_ROOT });
-    ctx.body = { success: true, message: '视频笔记命令行已初始化' };
+    const status = { python: false, package: false, ytDlp: false, ffmpeg: false };
+    await run(pythonCommand, ['--version'], { cwd: PROJECT_ROOT }); status.python = true;
+    await run(pythonCommand, ['-c', 'import videocaptioner'], { cwd: CAPTIONER_ROOT }); status.package = true;
+    await run(pythonCommand, ['-c', 'import yt_dlp'], { cwd: CAPTIONER_ROOT }); status.ytDlp = true;
+    try {
+      await run('ffmpeg', ['-version'], { cwd: PROJECT_ROOT });
+      status.ffmpeg = true;
+    } catch (err) {
+      status.ffmpegError = err.message;
+    }
+    status.initialized = status.python && status.package && status.ytDlp && status.ffmpeg;
+    ctx.body = { success: true, data: status, message: status.initialized ? '视频笔记命令行已初始化' : 'Python 依赖已安装，但 ffmpeg 尚未配置' };
   } catch (error) {
     ctx.status = 500;
     ctx.body = { success: false, message: `初始化失败：${error.message}` };

@@ -5,7 +5,7 @@ const { spawn } = require('child_process');
 const router = new Router({ prefix: '/api/market' });
 const PROJECT_ROOT = path.resolve(__dirname, '../../..');
 const CAPTIONER_ROOT = path.join(PROJECT_ROOT, 'video-captioner');
-const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
+const pythonCommand = process.env.PYTHON_COMMAND || (process.platform === 'win32' ? 'python' : 'python3');
 const bridge = path.join(CAPTIONER_ROOT, 'videocaptioner', 'cli', 'mt5_bridge.py');
 
 const runBridge = args => new Promise((resolve, reject) => {
@@ -18,11 +18,14 @@ const runBridge = args => new Promise((resolve, reject) => {
   let stderr = '';
   child.stdout.on('data', data => { stdout += data.toString(); });
   child.stderr.on('data', data => { stderr += data.toString(); });
-  child.on('error', reject);
+  child.on('error', error => reject(new Error(`Python bridge failed (${pythonCommand}): ${error.message}`)));
   child.on('close', code => {
     let result;
-    try { result = JSON.parse(stdout.trim()); } catch { reject(new Error(stderr.trim() || 'MT5 桥接返回了无效数据')); return; }
-    if (code !== 0 || !result.success) reject(new Error(result.message || stderr.trim() || 'MT5 请求失败'));
+    try { result = JSON.parse(stdout.trim()); } catch { reject(new Error(stderr.trim() || `MT5 bridge returned invalid data (exit ${code})`)); return; }
+    if (code !== 0 || !result.success) {
+      const detail = result.detail ? ` (${result.detail})` : '';
+      reject(new Error(`${result.message || stderr.trim() || `MT5 request failed (exit ${code})`}${detail}`));
+    }
     else resolve(result);
   });
 });

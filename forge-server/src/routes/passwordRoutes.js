@@ -5,6 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 
 // 确保表存在
 const initTable = async () => {
+  await db.ready;
   const createTableQuery = `
     CREATE TABLE IF NOT EXISTS \`passwords\` (
       \`id\` VARCHAR(36) PRIMARY KEY,

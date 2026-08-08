@@ -6,7 +6,8 @@ const path = require('path');
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
+  host: process.env.DB_HOST || '127.0.0.1',
+  port: Number(process.env.DB_PORT || 3306),
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || 'root',
   waitForConnections: true,
@@ -19,34 +20,35 @@ const dbConfig = {
 const databaseName = process.env.DB_NAME || 'forge_db';
 const pool = mysql.createPool({ ...dbConfig, database: databaseName });
 
-(async () => {
+const ready = (async () => {
+  // Create the database before opening any pool connection that selects it.
+  const initConnection = await mysql.createConnection({
+    host: dbConfig.host,
+    port: dbConfig.port,
+    user: dbConfig.user,
+    password: dbConfig.password
+  });
+
   try {
-    // 1. Create connection without database selected to ensure database exists
-    const initConnection = await mysql.createConnection({
-      host: dbConfig.host,
-      user: dbConfig.user,
-      password: dbConfig.password
-    });
-    
     await initConnection.query(`CREATE DATABASE IF NOT EXISTS \`${databaseName}\` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+  } finally {
     await initConnection.end();
+  }
 
-    // 2. Now connect to the pool with the database selected
-    const connection = await pool.getConnection();
+  const connection = await pool.getConnection();
+  try {
     console.log('Database connected successfully');
-
-    // 3. Run init.sql to ensure tables exist
     const initSqlPath = path.join(__dirname, '../../sql/init.sql');
     if (fs.existsSync(initSqlPath)) {
       const sqlContent = fs.readFileSync(initSqlPath, 'utf8');
       await connection.query(sqlContent);
       console.log('Database tables verified/initialized.');
     }
-
+  } finally {
     connection.release();
-  } catch (error) {
-    console.error('Database connection or initialization failed:', error.message);
   }
 })();
+
+pool.ready = ready;
 
 module.exports = pool;

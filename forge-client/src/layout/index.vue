@@ -46,11 +46,11 @@
       </el-menu>
 
       <!-- 底部锁屏按钮 -->
-      <div class="aside-footer" v-if="!isCollapse" @click="lockApp">
+      <div v-if="settingsStore.lockEnabled && !isCollapse" class="aside-footer" @click="lockApp">
         <el-icon><Lock /></el-icon>
         <span>锁定系统</span>
       </div>
-      <div class="aside-footer center" v-else @click="lockApp" title="锁定系统">
+      <div v-if="settingsStore.lockEnabled && isCollapse" class="aside-footer center" @click="lockApp" title="锁定系统">
         <el-icon><Lock /></el-icon>
       </div>
 
@@ -95,7 +95,7 @@
             <el-avatar :size="50" :src="profileForm.avatar || defaultAvatar" />
             <el-upload
               class="avatar-uploader"
-              action="http://localhost:5888/api/settings/upload-avatar"
+              action="http://127.0.0.1:5888/api/settings/upload-avatar"
               name="avatar"
               :show-file-list="false"
               :on-success="handleAvatarSuccess"
@@ -232,6 +232,7 @@ const bgStyle = computed(() => {
 })
 
 const lockApp = () => {
+  if (!settingsStore.lockEnabled) return
   router.push({
     path: '/',
     query: { redirect: route.fullPath }

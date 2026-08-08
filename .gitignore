@@ -39,7 +39,7 @@ venv/
 Thumbs.db
 
 # Environment and secrets
-.env
+
 *.key
 *.pem
 **/cookies.txt
@@ -69,3 +69,5 @@ forge_full_export.sql
 forge-server/public/video-notes/
 *.mp4
 *.srt
+
+**/cookies_bilbil.txt

@@ -70,7 +70,7 @@
           <div class="upload-area">
             <el-upload
               class="image-uploader"
-              action="http://localhost:5888/api/upload/markdown-image"
+              action="http://127.0.0.1:5888/api/upload/markdown-image"
               name="image"
               :show-file-list="false"
               :on-success="handleImageSuccess"
@@ -136,7 +136,7 @@ import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
 
-const API_BASE = 'http://localhost:5888/api'
+const API_BASE = 'http://127.0.0.1:5888/api'
 
 // Markdown 渲染器
 const md = new MarkdownIt({

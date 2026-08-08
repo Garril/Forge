@@ -37,7 +37,7 @@
           <div class="button-row">
             <el-button type="primary" :loading="running === 'parse'" :disabled="!form.url" @click="parseVideo">解析视频</el-button>
             <el-button type="success" :loading="running === 'download'" :disabled="!parsed" @click="downloadVideo">下载视频</el-button>
-            <el-button type="warning" :loading="running === 'auto'" :disabled="!parsed || !aiConfig.apiKey || !aiConfig.apiBase || !aiConfig.model" @click="autoGenerateNotes">自动生成笔记</el-button>
+            <el-button type="warning" :loading="running === 'auto'" :disabled="Boolean(running)" @click="autoGenerateNotes">自动生成笔记</el-button>
           </div>
         </el-form>
         <el-descriptions v-if="parsed" :column="1" border class="video-info">
@@ -143,8 +143,39 @@ import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { CircleCheck, Tools, Refresh } from '@element-plus/icons-vue'
 
-const API = 'http://localhost:5888/api/video-notes'
-const DEFAULT_PROMPT = '请根据下面的视频字幕生成结构化 Markdown 笔记。必须包含：一句话摘要、核心观点、详细要点、关键术语、可执行行动和原字幕中的重要时间点。不要编造字幕中不存在的事实。'
+const API = 'http://127.0.0.1:5888/api/video-notes'
+const DEFAULT_PROMPT = `You are a helpful assistant.
+
+你是一名专业的内容整理助手，擅长把视频字幕（.srt 文件）整理成高质量的读书笔记。
+
+## 任务
+读取我提供的 .srt 字幕文件（带时间戳），总结视频内容，生成一份详细、凝练的 markdown 读书笔记。
+
+## 笔记格式规范
+
+### 标题结构
+- 一级标题：视频标题（# 视频标题）
+- 二级标题：最多不超过 5 个（##），要高度凝练地概括每个板块的核心主题
+- 三级标题及以下：不再使用任何 # 层级标题，统一改用以下方式表达：
+  - > 引用语法（用于关键小结话语）
+  - | 表格（用于数据对比、清单）
+  - **加粗**（用于强调要点）
+
+### > 语法的使用规则
+- > 只用于标注**关键的小结话语**——类似金句、点睛总结、核心结论
+- 杜绝大批量文字使用 > 标注；正文内容用普通段落书写，保持阅读流畅
+
+### 表述方式
+- 以**个人写笔记的视角**撰写，语言自然、通顺
+- 少用或不用"视频中说道""视频中解释""视频中表示"等指明这是视频笔记的说法，避免阅读不流畅
+
+### 内容要求
+- 内容要尽量**详细**，保留原文的关键台词、具体数据、典型例子
+- 同时做到**高度凝练**，删繁就简，突出核心观点和逻辑链条
+- 逻辑清晰，按板块组织，方便快速复习
+
+## 输出
+直接输出整理好的 markdown 笔记，不要添加额外的说明或评价。`
 const form = reactive({ url: '', videoPath: '', srtPath: '', markdownPath: '', language: 'zh' })
 const apiPresets = ref([])
 const apiPresetsLoading = ref(false)
@@ -235,8 +266,12 @@ const checkOrInitialize = async () => {
   try {
     await checkStatus()
     if (!status.initialized) {
-      await axios.post(`${API}/initialize`)
+      const { data } = await axios.post(`${API}/initialize`)
+      if (data.data) Object.assign(status, data.data)
       await checkStatus()
+      if (!status.initialized) {
+        throw new Error(data.message || '视频笔记环境尚未完整配置，请检查 Python 依赖和 ffmpeg')
+      }
       ElMessage.success('视频笔记环境初始化完成')
     } else ElMessage.success('环境检测正常')
   } catch (error) { statusError.value = error.response?.data?.message || '无法连接后端，请先启动 Forge Server' } finally { checking.value = false }
@@ -299,8 +334,14 @@ const downloadVideo = () => startJob('download', { url: form.url, title: parsed.
 const transcribe = () => startJob('transcribe', { videoPath: form.videoPath, language: form.language })
 const summarize = () => startJob('summarize', { inputPath: form.srtPath, title: parsed.value?.title, ...aiConfig })
 const autoGenerateNotes = async () => {
+  if (!form.url.trim()) return ElMessage.warning('请先输入视频链接')
+  if (!aiConfig.apiKey || !aiConfig.apiBase || !aiConfig.model) return ElMessage.warning('请先完成 AI API 配置')
   running.value = 'auto'
   try {
+    if (!parsed.value) {
+      await parseVideo()
+      if (!parsed.value) throw new Error('视频解析未完成')
+    }
     const downloadResult = await startJob('download', { url: form.url, title: parsed.value?.title }, 'auto')
     if (downloadResult?.status !== 'completed' || !form.videoPath) throw new Error('视频下载未完成')
     running.value = 'auto'

@@ -40,7 +40,7 @@
                   <el-checkbox :model-value="item.visible" @change="setCustomIndicatorVisible(item, $event)" />
                   <span class="custom-indicator-name" :title="item.name">{{ item.name }}</span>
                   <el-button size="small" link type="primary" @click="openCustomIndicatorEditor(item)">编辑</el-button>
-                  <el-button size="small" link type="danger" @click="removeCustomIndicator(item.id)">删除</el-button>
+                  <el-button v-if="!item.builtin" size="small" link type="danger" @click="removeCustomIndicator(item.id)">删除</el-button>
                 </div>
               </div>
             </el-popover>
@@ -134,32 +134,33 @@
     <el-dialog v-model="patternDialog" class="pattern-dialog" :title="editingPatternTemplateId ? '编辑 K 线结构' : '录入 K 线结构'" width="900px" top="40px" :close-on-click-modal="false">
       <div class="pattern-dialog-content">
         <el-alert type="info" :closable="false" title="独立录入画布：横轴固定每根 K 线的位置；拖动实体、上下影线调整 OHLC。结构前后趋势直接选择即可。" />
-        <div class="pattern-recording-toolbar"><span>结构 {{ patternBars.length }} 根 K 线</span><span>前趋势：{{ patternDraft.beforeTrend === 'any' ? '不限制' : patternDraft.beforeTrend === 'up' ? '上涨' : '下跌' }}；后趋势：{{ patternDraft.afterTrend === 'any' ? '不限制' : patternDraft.afterTrend === 'up' ? '上涨' : '下跌' }}</span><el-button size="small" @click="addPatternBar">添加 K 线</el-button><el-button size="small" :disabled="patternBars.length <= 1" @click="removePatternBar">删除末根</el-button><el-button size="small" @click="resetPatternBars">重置</el-button><el-button size="small" @click="togglePatternCanvasFullscreen">{{ patternCanvasFullscreen ? '退出全屏画布' : '全屏画布' }}</el-button></div>
-        <div class="pattern-editor" :class="{ 'is-fullscreen': patternCanvasFullscreen }"><div class="pattern-canvas-viewport"><canvas ref="patternCanvas" class="pattern-editor-canvas" @pointerdown="beginPatternCandleDrag" @pointermove="continuePatternCandleDrag" @pointerup="finishPatternCandleDrag" @pointercancel="finishPatternCandleDrag"></canvas></div><div class="pattern-editor-help">拖动：实体上下端调整开收盘价；上影线顶端调整最高价；下影线底端调整最低价</div></div>
+        <div class="pattern-recording-toolbar"><span>结构 {{ patternBars.length }} 根 K 线</span><span>前趋势：{{ patternDraft.beforeTrend === 'any' ? '不限制' : patternDraft.beforeTrend === 'up' ? '上涨' : '下跌' }}；后趋势：{{ patternDraft.afterTrend === 'any' ? '不限制' : patternDraft.afterTrend === 'up' ? '上涨' : '下跌' }}</span><el-button size="small" @click="addPatternBar">添加 K 线</el-button><el-button size="small" :disabled="patternBars.length <= 1" @click="removePatternBar">删除末根</el-button><el-button size="small" @click="resetPatternBars">重置</el-button></div>
+        <div class="pattern-editor"><div class="pattern-canvas-viewport"><canvas ref="patternCanvas" class="pattern-editor-canvas" @pointerdown="beginPatternCandleDrag" @pointermove="continuePatternCandleDrag" @pointerup="finishPatternCandleDrag" @pointercancel="finishPatternCandleDrag"></canvas></div><div class="pattern-editor-help">拖动：实体上下端调整开收盘价；上影线顶端调整最高价；下影线底端调整最低价</div></div>
         <el-form label-position="top" class="pattern-form">
         <el-form-item label="结构名称"><el-input v-model="patternDraft.name" placeholder="例如：三根底部吞没" /></el-form-item>
         <el-form-item label="逆向结构名称"><el-input v-model="patternDraft.inverseName" placeholder="例如：三根底部反转" /></el-form-item>
         <div class="pattern-trend-fields"><el-form-item label="结构前趋势"><el-select v-model="patternDraft.beforeTrend"><el-option label="不限制" value="any" /><el-option label="上涨" value="up" /><el-option label="下跌" value="down" /></el-select></el-form-item><el-form-item label="结构后趋势"><el-select v-model="patternDraft.afterTrend"><el-option label="不限制" value="any" /><el-option label="上涨" value="up" /><el-option label="下跌" value="down" /></el-select></el-form-item><el-form-item label="趋势观察 K 线数"><el-input-number v-model="patternDraft.trendBars" :min="0" :max="50" /></el-form-item></div>
       </el-form>
       <el-table v-if="patternBars.length" :data="patternBars" size="small" max-height="180"><el-table-column type="index" label="#" width="55" /><el-table-column label="开盘"><template #default="scope"><el-input-number v-model="scope.row.open" size="small" :controls="false" @change="normalizePatternEditorBar(scope.row)" /></template></el-table-column><el-table-column label="最高"><template #default="scope"><el-input-number v-model="scope.row.high" size="small" :controls="false" @change="normalizePatternEditorBar(scope.row)" /></template></el-table-column><el-table-column label="最低"><template #default="scope"><el-input-number v-model="scope.row.low" size="small" :controls="false" @change="normalizePatternEditorBar(scope.row)" /></template></el-table-column><el-table-column label="收盘"><template #default="scope"><el-input-number v-model="scope.row.close" size="small" :controls="false" @change="normalizePatternEditorBar(scope.row)" /></template></el-table-column></el-table>
-        <div v-if="patternBars.length" class="reverse-pattern-section"><div class="reverse-pattern-title"><strong>{{ patternDraft.inverseName || `${patternDraft.name || '当前结构'}-逆` }}</strong><span>自动生成，只读</span></div><div class="pattern-editor reverse-pattern-editor"><canvas ref="reversePatternCanvas" class="pattern-editor-canvas"></canvas><div class="pattern-editor-help">整体向右旋转 180°：顺序、高低点及上下影线同步反转</div></div></div>
+        <div v-if="patternBars.length" class="reverse-pattern-section"><div class="reverse-pattern-title"><strong>{{ patternDraft.inverseName || `${patternDraft.name || '当前结构'}-逆` }}</strong><span>自动生成，只读</span></div><div class="pattern-editor reverse-pattern-editor"><canvas ref="reversePatternCanvas" class="pattern-editor-canvas"></canvas><div class="pattern-editor-help">以整体价格区间的水平中线进行上下镜像：顺序不变，阳线与阴线互换</div></div></div>
       </div>
-      <template #footer><el-button @click="patternDialog = false">取消</el-button><el-button type="primary" :disabled="patternBars.length < 1" @click="savePatternTemplate">保存结构</el-button></template>
+      <template #footer><el-button :disabled="patternSaving" @click="patternDialog = false">取消</el-button><el-button type="primary" :loading="patternSaving" :disabled="patternBars.length < 1 || !patternDraft.name.trim()" @click="savePatternTemplate">保存结构</el-button></template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { ElMessage } from 'element-plus'
 import axios from 'axios'
 import { createChart, createSeriesMarkers, CandlestickSeries, ColorType, HistogramSeries, LineSeries } from 'lightweight-charts'
 import { Minus, Plus } from '@element-plus/icons-vue'
 
-const API = 'http://localhost:5888/api/market'
-const BOARD_CONFIG_API = 'http://localhost:5888/api/board-analysis/config'
-const BOARD_PATTERNS_API = 'http://localhost:5888/api/board-analysis/patterns'
-const AI_PRESETS_API = 'http://localhost:5888/api/video-notes/api-presets'
-const AI_ANALYZE_API = 'http://localhost:5888/api/ai/analyze-market'
+const API = 'http://127.0.0.1:5888/api/market'
+const BOARD_CONFIG_API = 'http://127.0.0.1:5888/api/board-analysis/config'
+const BOARD_PATTERNS_API = 'http://127.0.0.1:5888/api/board-analysis/patterns'
+const AI_PRESETS_API = 'http://127.0.0.1:5888/api/video-notes/api-presets'
+const AI_ANALYZE_API = 'http://127.0.0.1:5888/api/ai/analyze-market'
 const AI_SELECTED_PRESET_KEY = 'forge-board-ai-selected-preset'
 const timeframes = [{ value: 'M1', label: '1分' }, { value: 'M5', label: '5分' }, { value: 'M15', label: '15分' }, { value: 'M30', label: '30分' }, { value: 'H1', label: '1小时' }, { value: 'H4', label: '4小时' }, { value: 'D1', label: '1天' }, { value: 'W1', label: '1周' }, { value: 'MN1', label: '1月' }]
 const symbols = ref([{ name: 'XAUUSD' }, { name: 'NAS100' }, { name: 'EURUSD' }, { name: 'ETHUSD' }])
@@ -178,7 +179,7 @@ const patternRecording = ref(false)
 const patternCanvas = ref(null)
 const reversePatternCanvas = ref(null)
 const patternBars = ref([])
-const patternCanvasFullscreen = ref(false)
+const patternSaving = ref(false)
 const patternStroke = ref(null)
 const patternDragBounds = ref(null)
 const patternTemplates = ref([])
@@ -203,7 +204,7 @@ const aiError = ref('')
 const aiReady = computed(() => Boolean(aiPreset.value?.apiBase && aiPreset.value?.apiKey && aiPreset.value?.model))
 const aiBiasLabel = computed(() => ({ bullish: '偏多', bearish: '偏空', neutral: '震荡', unknown: '未知' }[aiResult.value?.marketBias] || '未知'))
 const aiConfidenceLabel = computed(() => ({ high: '高', medium: '中', low: '低' }[aiResult.value?.confidence] || '未知'))
-const resetPatternDragBounds = () => { patternDragBounds.value = getPatternPriceBounds(patternBars.value) }
+const resetPatternDragBounds = () => { patternDragBounds.value = null }
 const pagedPatternTemplates = computed(() => patternTemplates.value.slice((patternLibraryPage.value - 1) * 6, patternLibraryPage.value * 6))
 watch(patternTemplates, templates => {
   patternLibraryPage.value = Math.min(patternLibraryPage.value, Math.max(1, Math.ceil(templates.length / 6)))
@@ -417,6 +418,15 @@ const defaultCustomSettings = () => ({
   showMacd: false, showMacdHistogram: true, showRsi: false, showStochastic: false, showCci: false, showMomentum: false, showObv: false,
   bullColor: '#00c853', bearColor: '#f23645', labelSize: 'Normal', labelColor: '#f59e0b', barInterval: 2
 })
+const defaultBarCountIndicator = () => ({
+  id: 'builtin-bar-count',
+  name: 'Bar Count',
+  code: `//@version=4\nstudy("Bar Count", overlay=true)\n// Display at every X bars`,
+  settings: { ...defaultCustomSettings() },
+  visible: true,
+  builtin: true,
+  savedAt: Date.now()
+})
 const parsePineDefaults = code => {
   const settings = defaultCustomSettings()
   const source = String(code || '')
@@ -479,6 +489,7 @@ const setCustomIndicatorVisible = (item, visible) => {
   updateCustomIndicator()
 }
 const removeCustomIndicator = id => {
+  if (customIndicators.value.find(item => item.id === id)?.builtin) return
   customIndicators.value = customIndicators.value.filter(item => item.id !== id)
   if (!customIndicators.value.some(item => item.visible)) customIndicators.value.forEach(item => { item.visible = false })
   scheduleBoardConfigSave()
@@ -801,7 +812,6 @@ const openPatternLibrary = () => {
   patternLibraryDialog.value = true
 }
 const openPatternTemplateEditor = async template => {
-  patternCanvasFullscreen.value = false
   editingPatternTemplateId.value = template.id
   patternRecording.value = true
   patternDraft.value = { name: template.name || '', inverseName: template.inverseName || '', beforeTrend: template.beforeTrend || 'any', afterTrend: template.afterTrend || 'any', trendBars: Number.isFinite(Number(template.trendBars)) ? Math.max(0, Number(template.trendBars)) : 8 }
@@ -840,29 +850,40 @@ const getReversePatternBars = items => {
   if (!items.length) return []
   const patternHigh = Math.max(...items.map(bar => Number(bar.high)))
   const patternLow = Math.min(...items.map(bar => Number(bar.low)))
-  const rotationAxis = patternHigh + patternLow
-  return items.slice().reverse().map(bar => ({
+  const mirrorAxis = patternHigh + patternLow
+  return items.map(bar => ({
     time: `${bar.time}-reverse`,
-    open: rotationAxis - Number(bar.close),
-    close: rotationAxis - Number(bar.open),
-    high: rotationAxis - Number(bar.low),
-    low: rotationAxis - Number(bar.high)
+    open: mirrorAxis - Number(bar.open),
+    close: mirrorAxis - Number(bar.close),
+    high: mirrorAxis - Number(bar.low),
+    low: mirrorAxis - Number(bar.high)
   }))
 }
-const redrawPatternCanvas = (target = patternCanvas.value, sourceBars = patternBars.value) => {
+const redrawPatternCanvas = (target = patternCanvas.value, sourceBars = patternBars.value, boundsOverride = null) => {
   const canvas = target
   if (!canvas) return
   const rect = canvas.getBoundingClientRect()
   const ratio = window.devicePixelRatio || 1
-  canvas.width = Math.max(1, Math.round(rect.width * ratio))
-  canvas.height = Math.max(1, Math.round(rect.height * ratio))
+  const pixelWidth = Math.max(1, Math.round(rect.width * ratio))
+  const pixelHeight = Math.max(1, Math.round(rect.height * ratio))
+  if (canvas.width !== pixelWidth) canvas.width = pixelWidth
+  if (canvas.height !== pixelHeight) canvas.height = pixelHeight
   const context = canvas.getContext('2d')
   context.setTransform(ratio, 0, 0, ratio, 0, 0)
   const width = rect.width
   const height = rect.height
   const isEditableCanvas = target === patternCanvas.value
   const displayBars = sourceBars
-  const bounds = isEditableCanvas && patternDragBounds.value ? patternDragBounds.value : getPatternPriceBounds(displayBars)
+  const baseBounds = getPatternPriceBounds(displayBars)
+  const bounds = boundsOverride || (isEditableCanvas && patternDragBounds.value
+    ? patternDragBounds.value
+    : (() => {
+        const baseSpan = baseBounds.max - baseBounds.min
+        const referenceHeight = 360
+        const scale = Math.max(1, height / referenceHeight)
+        const extra = (baseSpan * (scale - 1)) / 2
+        return { max: baseBounds.max + extra, min: baseBounds.min - extra }
+      })())
   const { max, min } = bounds
   const span = Math.max(0.00000001, max - min)
   const priceToY = price => 18 + (max - price) / span * (height - 36)
@@ -880,18 +901,46 @@ const redrawPatternCanvas = (target = patternCanvas.value, sourceBars = patternB
     context.fillStyle = '#94a3b8'; context.font = '11px sans-serif'; context.textAlign = 'center'; context.fillText(String(index + 1), x, height - 8)
   })
 }
-const togglePatternCanvasFullscreen = () => {
-  patternCanvasFullscreen.value = !patternCanvasFullscreen.value
-  nextTick(() => redrawPatternCanvases())
-}
+let patternRedrawFrame = 0
+let patternDragRedrawFrame = 0
 const redrawPatternCanvases = () => {
-  redrawPatternCanvas(patternCanvas.value, patternBars.value)
-  redrawPatternCanvas(reversePatternCanvas.value, getReversePatternBars(patternBars.value))
+  if (patternRedrawFrame) return
+  patternRedrawFrame = requestAnimationFrame(() => {
+    patternRedrawFrame = 0
+    const sourceBars = patternBars.value
+    const reverseBars = getReversePatternBars(sourceBars)
+    const editorHeight = patternCanvas.value?.getBoundingClientRect().height || 460
+    const sourceBounds = getPatternCanvasBounds(sourceBars, editorHeight, patternDragBounds.value)
+    const rotationAxis = sourceBars.length
+      ? Math.max(...sourceBars.map(bar => Number(bar.high))) + Math.min(...sourceBars.map(bar => Number(bar.low)))
+      : 0
+    const reverseBounds = {
+      max: rotationAxis - sourceBounds.min,
+      min: rotationAxis - sourceBounds.max
+    }
+    redrawPatternCanvas(patternCanvas.value, sourceBars, sourceBounds)
+    redrawPatternCanvas(reversePatternCanvas.value, reverseBars, reverseBounds)
+  })
+}
+const redrawPatternDragCanvas = () => {
+  if (patternDragRedrawFrame) return
+  patternDragRedrawFrame = requestAnimationFrame(() => {
+    patternDragRedrawFrame = 0
+    redrawPatternCanvas(patternCanvas.value, patternBars.value)
+  })
 }
 const patternEditorPoint = event => { const rect = patternCanvas.value?.getBoundingClientRect(); return rect ? { x: event.clientX - rect.left, y: event.clientY - rect.top } : null }
+const getPatternCanvasBounds = (items, height, dragBounds = null) => {
+  if (dragBounds) return dragBounds
+  const baseBounds = getPatternPriceBounds(items)
+  const baseSpan = baseBounds.max - baseBounds.min
+  const scale = Math.max(1, height / 360)
+  const extra = (baseSpan * (scale - 1)) / 2
+  return { max: baseBounds.max + extra, min: baseBounds.min - extra }
+}
 const patternEditorMetrics = () => {
   const rect = patternCanvas.value.getBoundingClientRect()
-  const bounds = patternDragBounds.value || getPatternPriceBounds(patternBars.value)
+  const bounds = getPatternCanvasBounds(patternBars.value, rect.height, patternDragBounds.value)
   const { max, min } = bounds
   return { rect, max, min, span: Math.max(0.00000001, max - min) }
 }
@@ -911,7 +960,7 @@ const beginPatternCandleDrag = event => {
   if (nearestHandle[1] > 18) return
   const handle = nearestHandle[0]
   patternDragBounds.value = { max, min }
-  patternStroke.value = { index, handle }
+  patternStroke.value = { index, handle, pointerId: event.pointerId }
   event.currentTarget.setPointerCapture?.(event.pointerId)
 }
 const continuePatternCandleDrag = event => {
@@ -919,29 +968,68 @@ const continuePatternCandleDrag = event => {
   const point = patternEditorPoint(event)
   const { rect, max, min, span } = patternEditorMetrics()
   const rawValue = max - ((point.y - 18) / Math.max(1, rect.height - 36)) * span
-  const value = Math.min(max, Math.max(min, rawValue))
   const item = patternBars.value[patternStroke.value.index]
-  item[patternStroke.value.handle] = Number(value.toFixed(5))
-  normalizePatternEditorBar(item)
+  item[patternStroke.value.handle] = Number(rawValue.toFixed(5))
+  normalizePatternEditorBar(item, false)
+  redrawPatternDragCanvas()
 }
-const finishPatternCandleDrag = () => {
+const finishPatternCandleDrag = event => {
+  if (!patternStroke.value) return
+  const { max, min } = patternDragBounds.value || getPatternPriceBounds(patternBars.value)
+  const values = patternBars.value.flatMap(item => [item.high, item.low]).map(Number).filter(Number.isFinite)
+  const valueMax = Math.max(...values)
+  const valueMin = Math.min(...values)
+  const span = Math.max(0.00000001, max - min)
+  patternDragBounds.value = {
+    max: Math.max(max, valueMax + span * 0.08),
+    min: Math.min(min, valueMin - span * 0.08)
+  }
+  const pointerId = patternStroke.value.pointerId
   patternStroke.value = null
-  patternDragBounds.value = null
+  event?.currentTarget?.releasePointerCapture?.(pointerId)
+  redrawPatternCanvases()
 }
-const normalizePatternEditorBar = item => { item.open = Number.isFinite(Number(item.open)) ? Number(item.open) : 0; item.close = Number.isFinite(Number(item.close)) ? Number(item.close) : 0; item.high = Math.max(Number.isFinite(Number(item.high)) ? Number(item.high) : 0, item.open, item.close); item.low = Math.min(Number.isFinite(Number(item.low)) ? Number(item.low) : 0, item.open, item.close); redrawPatternCanvases() }
-const createPatternBar = index => ({ time: `draft-${Date.now()}-${index}`, open: 100 + index * 0.8, high: 102 + index * 0.8, low: 98 + index * 0.8, close: 101 + index * 0.8 })
-const addPatternBar = () => { patternBars.value.push(createPatternBar(patternBars.value.length)); resetPatternDragBounds(); redrawPatternCanvases() }
+const normalizePatternEditorBar = (item, redraw = true) => {
+  item.open = Number.isFinite(Number(item.open)) ? Number(item.open) : 0
+  item.close = Number.isFinite(Number(item.close)) ? Number(item.close) : 0
+  item.high = Math.max(Number.isFinite(Number(item.high)) ? Number(item.high) : 0, item.open, item.close)
+  item.low = Math.min(Number.isFinite(Number(item.low)) ? Number(item.low) : 0, item.open, item.close)
+  if (redraw) {
+    resetPatternDragBounds()
+    redrawPatternCanvases()
+  }
+}
+const createPatternBar = (index, center = 100) => {
+  const base = Number.isFinite(Number(center)) ? Number(center) : 100
+  return { time: `draft-${Date.now()}-${index}`, open: base - 0.08, high: base + 0.2, low: base - 0.2, close: base + 0.08 }
+}
+const addPatternBar = () => {
+  const canvasHeight = patternCanvas.value?.getBoundingClientRect().height || 460
+  const currentBounds = patternBars.value.length
+    ? getPatternCanvasBounds(patternBars.value, canvasHeight, patternDragBounds.value)
+    : null
+  const center = patternBars.value.length ? Number(patternBars.value.at(-1).close) : 100
+  patternBars.value.push(createPatternBar(patternBars.value.length, center))
+  if (currentBounds) patternDragBounds.value = currentBounds
+  redrawPatternCanvases()
+}
 const removePatternBar = () => { if (patternBars.value.length > 1) patternBars.value.pop(); resetPatternDragBounds(); redrawPatternCanvases() }
-const resetPatternBars = () => { patternBars.value = [createPatternBar(0), createPatternBar(1), createPatternBar(2)]; resetPatternDragBounds(); redrawPatternCanvases() }
-const startPatternRecording = async () => { patternCanvasFullscreen.value = false; editingPatternTemplateId.value = null; patternDraft.value = { name: '', inverseName: '', beforeTrend: 'any', afterTrend: 'any', trendBars: 8 }; patternRecording.value = true; patternDialog.value = true; resetPatternBars(); await nextTick(); redrawPatternCanvases() }
+const resetPatternBars = () => { patternBars.value = [createPatternBar(0), createPatternBar(1)]; resetPatternDragBounds(); redrawPatternCanvases() }
+const startPatternRecording = async () => { editingPatternTemplateId.value = null; patternDraft.value = { name: '', inverseName: '', beforeTrend: 'any', afterTrend: 'any', trendBars: 8 }; patternRecording.value = true; patternDialog.value = true; resetPatternBars(); await nextTick(); redrawPatternCanvases() }
 const savePatternTemplate = async () => {
-  if (!patternDraft.value.name.trim() || !patternBars.value.length) return
-  const existingTemplate = patternTemplates.value.find(item => item.id === editingPatternTemplateId.value)
+  const name = String(patternDraft.value.name || '').trim()
+  if (!name) return ElMessage.warning('请填写结构名称')
+  if (!patternBars.value.length) return ElMessage.warning('请至少保留一根 K 线')
   const editorBars = patternBars.value.map(item => ({ time: item.time, open: Number(item.open), high: Number(item.high), low: Number(item.low), close: Number(item.close) }))
-  const payload = { name: patternDraft.value.name.trim(), inverseName: patternDraft.value.inverseName.trim(), beforeTrend: patternDraft.value.beforeTrend, afterTrend: patternDraft.value.afterTrend, trendBars: Number.isFinite(Number(patternDraft.value.trendBars)) ? Math.max(0, Number(patternDraft.value.trendBars)) : 8, bars: editorBars.map(normalizePatternBar), editorBars, relationships: buildPatternRelationships(editorBars), enabled: existingTemplate ? existingTemplate.enabled !== false : true }
+  const invalidBar = editorBars.find(item => ![item.open, item.high, item.low, item.close].every(Number.isFinite) || item.high < Math.max(item.open, item.close) || item.low > Math.min(item.open, item.close) || item.high <= item.low)
+  if (invalidBar) return ElMessage.warning('K 线价格数据无效，请检查开盘、最高、最低和收盘价')
+  const existingTemplate = patternTemplates.value.find(item => item.id === editingPatternTemplateId.value)
+  const payload = { name, inverseName: String(patternDraft.value.inverseName || '').trim(), beforeTrend: patternDraft.value.beforeTrend, afterTrend: patternDraft.value.afterTrend, trendBars: Number.isFinite(Number(patternDraft.value.trendBars)) ? Math.max(0, Number(patternDraft.value.trendBars)) : 8, bars: editorBars.map(normalizePatternBar), editorBars, relationships: buildPatternRelationships(editorBars), enabled: existingTemplate ? existingTemplate.enabled !== false : true }
+  patternSaving.value = true
   try {
     const request = editingPatternTemplateId.value ? axios.put(`${BOARD_PATTERNS_API}/${encodeURIComponent(editingPatternTemplateId.value)}`, payload) : axios.post(BOARD_PATTERNS_API, payload)
     const { data } = await request
+    if (!data?.data?.id) throw new Error('服务端未返回已保存的结构')
     const index = patternTemplates.value.findIndex(item => item.id === data.data.id)
     if (index >= 0) patternTemplates.value[index] = data.data
     else patternTemplates.value.push(data.data)
@@ -951,7 +1039,13 @@ const savePatternTemplate = async () => {
     patternLibraryPage.value = Math.max(1, Math.ceil(patternTemplates.value.length / 6))
     scheduleBoardConfigSave()
     updateCustomIndicator()
-  } catch (error) { showError(error) }
+    ElMessage.success('K 线结构已保存')
+  } catch (error) {
+    showError(error)
+    ElMessage.error(error?.response?.data?.message || error?.message || 'K 线结构保存失败')
+  } finally {
+    patternSaving.value = false
+  }
 }
 const ICT_ANALYSIS_BAR_LIMIT = 240
 const ICT_STRUCTURE_RESULT_LIMIT = 24
@@ -1149,7 +1243,7 @@ const loadBoardConfig = async () => {
     const { data } = await axios.get(BOARD_CONFIG_API)
     const config = data.data || {}
     const legacy = readLegacyBoardConfig()
-    const needsMigration = (!Array.isArray(config.customIndicators) || config.customIndicators.length === 0) && Boolean(legacy.customIndicators?.length)
+    let needsMigration = (!Array.isArray(config.customIndicators) || config.customIndicators.length === 0) && Boolean(legacy.customIndicators?.length)
     if (config.preferences) {
       if (Array.isArray(config.preferences.emaConfigs)) { emaConfigs.value = config.preferences.emaConfigs; nextEmaId = Math.max(0, ...emaConfigs.value.map(item => Number(item.id) || 0)) + 1 }
       if (typeof config.preferences.bollingerVisible === 'boolean') bollingerVisible.value = config.preferences.bollingerVisible
@@ -1163,6 +1257,11 @@ const loadBoardConfig = async () => {
     if (Array.isArray(config.customIndicators) && config.customIndicators.length) customIndicators.value = config.customIndicators
     else if (legacy.customIndicators?.length) customIndicators.value = legacy.customIndicators
     else if (Array.isArray(config.customIndicators)) customIndicators.value = config.customIndicators
+    const hasBarCount = customIndicators.value.some(item => item.builtin || String(item.name || '').trim().toLowerCase() === 'bar count' || /(?:study|indicator)\s*\(\s*["']bar\s*count["']/i.test(item.code || ''))
+    if (!hasBarCount) {
+      customIndicators.value.unshift(defaultBarCountIndicator())
+      needsMigration = true
+    }
     try {
       const { data: patternData } = await axios.get(BOARD_PATTERNS_API)
       if (Array.isArray(patternData.data)) patternTemplates.value = patternData.data
@@ -1241,7 +1340,7 @@ const loadAiModels = async () => {
   if (!draft.apiBase || !draft.apiKey) { aiError.value = '请先填写 Base URL 和 API Key'; return }
   aiModelsLoading.value = true
   try {
-    const { data } = await axios.get('http://localhost:5888/api/video-notes/models', { params: { apiBase: draft.apiBase, apiMethod: draft.apiMethod || 'responses', apiKey: draft.apiKey } })
+    const { data } = await axios.get('http://127.0.0.1:5888/api/video-notes/models', { params: { apiBase: draft.apiBase, apiMethod: draft.apiMethod || 'responses', apiKey: draft.apiKey } })
     aiModels.value = (data.data?.data || []).map(item => item.id).filter(Boolean)
   } catch (error) { aiError.value = error?.response?.data?.message || '模型列表获取失败' } finally { aiModelsLoading.value = false }
 }
@@ -1416,6 +1515,6 @@ onBeforeUnmount(() => { clearTimeout(boardConfigSaveTimer); if (refreshTimer) cl
 .board-page { color: #e5e7eb; padding: 18px 22px; height: 100%; box-sizing: border-box; overflow: auto; scrollbar-width: none; -ms-overflow-style: none; background: #0b1220; }
 .board-page::-webkit-scrollbar { width: 0; height: 0; display: none; }
 .page-header, .toolbar, .quote-bar { display: flex; align-items: center; gap: 14px; }
-.page-header { justify-content: space-between; margin-bottom: 14px; } h2 { margin: 0 0 4px; } .muted, .chart-note, p { color: #94a3b8; font-size: 13px; }.header-actions { justify-content:space-between; padding:0 12px; flex:1; display: flex; gap: 10px; align-items: center; }.market-countdowns { display: flex; gap: 12px; font-size: 12px; color: #94a3b8; }.market-countdowns span { white-space: nowrap; }.header-account { color: #94a3b8; font-size: 12px; white-space: nowrap; }.market-countdowns b { color: #fbbf24; margin-left: 4px; }.toolbar { flex-wrap: wrap; background: #111827; padding: 12px; border-radius: 8px; }.symbol-select { width: 180px; flex: 0 0 180px; }.symbol-option { display: flex; align-items: center; justify-content: space-between; width: 100%; }.favorite-symbols { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }.favorite-symbols .el-button { margin: 0; }.account { margin-left: auto; color: #94a3b8; font-size: 13px; }.candle-countdown { color: #fbbf24; font-size: 13px; }.quote-bar { display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin: 0 0 16px; padding: 12px 14px; background: #172033; border-radius: 8px; font-size: 13px; }.quote-bar span { display: flex; justify-content: space-between; gap: 12px; }.quote-bar b { color: #f8fafc; margin-left: 5px; }.quote-bar b { color: #f8fafc; margin-left: 5px; }.content-grid { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 14px; height: calc(100vh - 180px); max-height: calc(100vh - 180px); min-height: 420px; overflow: hidden; align-items: stretch; }.content-grid.is-expanded { grid-template-columns: 1fr; }.chart-card, .info-card { background: #111827; border: 1px solid #263246; border-radius: 8px; min-height: 0; }.chart-card { display: flex; flex-direction: column; overflow: hidden; }.info-card { display: flex; flex-direction: column; box-sizing: border-box; height: 100%; min-height: 0; overflow: hidden; }.chart-toolbar { display: flex; align-items: center; gap: 14px; padding: 9px 12px; border-bottom: 1px solid #263246; }.chart-title { flex: 0 0 auto; }.chart-timeframe { flex: 1; overflow-x: auto; }.chart-timeframe .el-radio-button__inner { padding: 6px 10px; }.chart-title { color: rgb(103, 232, 249); font-size: 16px;font-weight: bolder; margin-right:30px;}.chart-actions { display: flex; gap: 8px; }.chart { flex: 1 1 auto; height: auto; min-height: 0; position: relative; }:deep(.pattern-dialog .el-dialog) { max-height: 90vh; margin-top: 5vh !important; margin-bottom: 5vh; display: flex; flex-direction: column; }.pattern-dialog :deep(.el-dialog__body) { min-height: 0; overflow: hidden; }.pattern-dialog :deep(.el-dialog__footer) { flex: 0 0 auto; }.pattern-dialog-content { max-height: calc(90vh - 130px); overflow-y: auto; padding-right: 6px; scrollbar-width: thin; scrollbar-color: #475569 #111827; }.pattern-dialog-content::-webkit-scrollbar { width: 7px; }.pattern-dialog-content::-webkit-scrollbar-track { background: #111827; border-radius: 7px; }.pattern-dialog-content::-webkit-scrollbar-thumb { background: #475569; border-radius: 7px; }.pattern-editor { position: relative; height: 360px; margin: 14px 0 18px; border: 1px solid #334155; border-radius: 6px; overflow: hidden; }.pattern-canvas-viewport { width: 100%; height: 100%; overflow: hidden; }.pattern-canvas-viewport .pattern-editor-canvas { display: block; width: 100%; height: 100%; }.pattern-canvas-zoom-label { margin-left: auto; color: #94a3b8; font-size: 12px; white-space: nowrap; }.pattern-editor.is-fullscreen { height: min(62vh, 680px); }.reverse-pattern-section { margin-top: 18px; }.reverse-pattern-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; color: #cbd5e1; }.reverse-pattern-title span { color: #94a3b8; font-size: 12px; }.reverse-pattern-editor { height: 240px; margin: 0; }.pattern-editor-canvas { display: block; width: 100%; height: 100%; cursor: ns-resize; touch-action: none; }.pattern-editor-help { position: absolute; left: 12px; bottom: 10px; color: #94a3b8; font-size: 12px; pointer-events: none; }.pattern-form { margin-top: 8px; }.pattern-trend-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }.pattern-trend-fields .el-select, .pattern-trend-fields .el-input-number { width: 100%; }.content-grid.is-expanded .chart { height: auto; }.macd-chart { flex: 0 0 150px; height: 150px; min-height: 150px; border-top: 1px solid #263246; }.ai-analysis-card { margin-top: 14px; padding: 16px 18px; background: #111827; border: 1px solid #263246; border-radius: 8px; }.ai-analysis-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }.ai-analysis-header > div:first-child { display: flex; align-items: baseline; gap: 10px; }.ai-analysis-header strong { color: #e2e8f0; font-size: 15px; }.ai-analysis-header span { color: #64748b; font-size: 12px; }.ai-analysis-actions { display: flex; align-items: center; gap: 8px; }.ai-preset-select { width: 190px; }.ai-preset-form-row, .ai-model-form-row { display: flex; align-items: center; gap: 8px; width: 100%; }.ai-preset-form-row .el-select, .ai-model-form-row .el-select { flex: 1; min-width: 0; }.ai-analysis-empty, .ai-analysis-error { margin-top: 12px; padding: 12px; color: #94a3b8; background: #0f172a; border-radius: 6px; font-size: 13px; }.ai-analysis-error { color: #fca5a5; border: 1px solid #7f1d1d; }.ai-analysis-content { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }.ai-result-section { min-width: 0; padding: 14px; background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; }.ai-result-conclusion { grid-column: 1 / -1; }.ai-result-risk { border-color: #713f12; }.ai-section-title { display: flex; align-items: center; gap: 9px; color: #e2e8f0; }.ai-section-title b { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 6px; color: #0f172a; background: #67e8f9; font-size: 13px; }.ai-result-risk .ai-section-title b { background: #fbbf24; }.ai-section-title strong { font-size: 14px; }.ai-section-title span { margin-left: auto; color: #94a3b8; font-size: 12px; }.ai-result-section p, .ai-result-section li { color: #cbd5e1; font-size: 13px; line-height: 1.6; }.ai-result-section > p { margin: 10px 0 0; }.ai-result-section ul { margin: 10px 0 0; padding-left: 20px; }.ai-result-section li + li { margin-top: 6px; }.ai-no-data { color: #64748b !important; }.ai-plan-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }.ai-plan-grid p { margin: 0; padding: 10px; background: #111827; border-radius: 6px; }.ai-plan-grid label { display: block; margin-bottom: 5px; color: #67e8f9; font-size: 12px; }.ai-levels { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }.ai-levels span { padding: 6px 9px; color: #fbbf24; background: #1c1917; border-radius: 5px; font-size: 12px; }.ai-levels small { margin-left: 5px; color: #94a3b8; }.indicator-panel { display: flex; flex-direction: column; gap: 8px; }.indicator-section { display: flex; align-items: center; justify-content: space-between; color: #cbd5e1; }.indicator-row { display: flex; align-items: center; gap: 6px; min-height: 30px; color: #cbd5e1; }.indicator-row .el-input-number { width: 94px; }.indicator-row .el-color-picker { flex: 0 0 auto; }.custom-indicator-row { min-width: 0; }.custom-indicator-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.custom-settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; }.custom-settings-grid .el-input-number, .custom-settings-grid .el-select { width: 100%; }.custom-settings-checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; margin-bottom: 16px; }.custom-color-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }.color-dot { width: 10px; height: 10px; border-radius: 50%; }.legend-item { margin-right: 16px; white-space: nowrap; }.indicator-legend { position: absolute; top: 8px; left: 10px; z-index: 3; color: #cbd5e1; font-size: 12px; pointer-events: none; }.ema-dot { display: inline-block; width: 18px; border-top: 2px solid #f59e0b; margin: 0 6px 3px 0; }.indicator-legend b { margin-left: 8px; color: #cbd5e1; font-weight: 400; }.price-overlay { position: absolute; right: 0; z-index: 3; min-width: 68px; padding: 2px 7px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; background: #0f9f87; color: #fff; font-size: 12px; line-height: 16px; pointer-events: none; }.price-overlay small { font-size: 11px; opacity: .95; }.chart-note { padding: 8px 14px 12px; }.info-card { padding: 14px; }.info-card > .el-divider { margin: 10px 0 12px; }.pattern-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; min-height: 0; overflow: hidden; }.pattern-entry-button, .pattern-library-button { flex: 1 1 calc(50% - 4px); width: calc(50% - 4px); min-width: 0; margin: 0; }.pattern-entry-button { --el-button-bg-color: #102a43; --el-button-border-color: #2563eb; --el-button-text-color: #60a5fa; }.pattern-library-button { --el-button-bg-color: #241b0f; --el-button-border-color: #a16207; --el-button-text-color: #fbbf24; }.locate-pattern-button { --el-button-bg-color: #102a43; --el-button-border-color: #0891b2; --el-button-text-color: #67e8f9; }.scan-favorite-button { --el-button-bg-color: #102a22; --el-button-border-color: #059669; --el-button-text-color: #6ee7b7; }.scan-other-button { --el-button-bg-color: #211735; --el-button-border-color: #7c3aed; --el-button-text-color: #c4b5fd; }.pattern-hint { flex: 0 0 100%; display: block; margin-top: 8px; color: #fbbf24; font-size: 12px; line-height: 1.5; }.pattern-tolerance-row { flex: 0 0 100%; display: flex; align-items: center; gap: 8px; margin-top: 8px; color: #cbd5e1; font-size: 13px; }.pattern-tolerance-row small { color: #64748b; }.pattern-tolerance-row .el-input-number { width: 86px; }.pattern-match-status { flex: 0 0 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; color: #94a3b8; font-size: 12px; }.pattern-match-status .el-button { flex: 0 0 auto; }.pattern-scan-area { flex: 0 0 100%; width: 100%; align-self: stretch; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; margin-top: 6px; min-height: 0; }.pattern-scan-area.has-results { flex: 1 1 auto; min-height: 0; }.pattern-scan-area > .el-button { flex: 0 0 auto; width: 100%; margin: 0; font-size: 13px; }.pattern-scan-status { flex: 0 0 auto; color: #aab8cc; font-size: 13px; line-height: 1.5; }.pattern-scan-results { flex: 1 1 auto; max-height: 425px; min-height: 0; width: 100%; box-sizing: border-box; display: flex; flex-direction: column; flex-wrap: nowrap; gap: 6px; overflow-y: auto; overflow-x: hidden; padding: 2px 5px 2px 0; scrollbar-width: thin; scrollbar-color: #64748b #111827; }.pattern-scan-results::-webkit-scrollbar { width: 6px; }.pattern-scan-results::-webkit-scrollbar-track { background: #111827; border-radius: 6px; }.pattern-scan-results::-webkit-scrollbar-thumb { background: #475569; border-radius: 6px; }.pattern-scan-results::-webkit-scrollbar-thumb:hover { background: #64748b; }.pattern-scan-results .el-button { width: 100%; min-height: 28px; margin: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.info-instructions { display: none; }.info-instructions p { margin: 0 0 10px; line-height: 1.55; }.refresh-interval-input { width: 82px; vertical-align: middle; margin: 0 3px; }.pattern-library-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }.pattern-library-card { min-width: 0; padding: 8px; border: 1px solid #334155; border-radius: 10px; background: #0f172a; }.pattern-card-header, .pattern-card-meta, .pattern-card-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }.pattern-card-header strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.pattern-preview { display: block; width: 100%; height: 92px; margin: 6px 0; background: #111827; border-radius: 6px; }.pattern-grid-line { stroke: #263246; stroke-width: 1; }.pattern-bull { stroke: #26a69a; stroke-width: 2; }.pattern-bear { stroke: #ef5350; stroke-width: 2; }.pattern-bull-fill { fill: #26a69a; }.pattern-bear-fill { fill: #ef5350; }.pattern-card-meta { color: #94a3b8; font-size: 12px; }.pattern-card-actions { justify-content: flex-end; margin-top: 6px; }.pattern-pagination { display: flex; justify-content: center; margin-top: 16px; }.pattern-recording-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }.pattern-recording-toolbar span { margin-right: auto; color: #94a3b8; }.instrument { font-size: 28px; font-weight: 700; color: #67e8f9; margin-bottom: 22px; }.info-row { display: flex; justify-content: space-between; margin: 13px 0; color: #94a3b8; }.info-row b { color: #e5e7eb; }@media (max-width: 900px) { .content-grid { grid-template-columns: 1fr; }.info-card { display: none; } }
+.page-header { justify-content: space-between; margin-bottom: 14px; } h2 { margin: 0 0 4px; } .muted, .chart-note, p { color: #94a3b8; font-size: 13px; }.header-actions { justify-content:space-between; padding:0 12px; flex:1; display: flex; gap: 10px; align-items: center; }.market-countdowns { display: flex; gap: 12px; font-size: 12px; color: #94a3b8; }.market-countdowns span { white-space: nowrap; }.header-account { color: #94a3b8; font-size: 12px; white-space: nowrap; }.market-countdowns b { color: #fbbf24; margin-left: 4px; }.toolbar { flex-wrap: wrap; background: #111827; padding: 12px; border-radius: 8px; }.symbol-select { width: 180px; flex: 0 0 180px; }.symbol-option { display: flex; align-items: center; justify-content: space-between; width: 100%; }.favorite-symbols { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }.favorite-symbols .el-button { margin: 0; }.account { margin-left: auto; color: #94a3b8; font-size: 13px; }.candle-countdown { color: #fbbf24; font-size: 13px; }.quote-bar { display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin: 0 0 16px; padding: 12px 14px; background: #172033; border-radius: 8px; font-size: 13px; }.quote-bar span { display: flex; justify-content: space-between; gap: 12px; }.quote-bar b { color: #f8fafc; margin-left: 5px; }.quote-bar b { color: #f8fafc; margin-left: 5px; }.content-grid { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 14px; height: calc(100vh - 180px); max-height: calc(100vh - 180px); min-height: 420px; overflow: hidden; align-items: stretch; }.content-grid.is-expanded { grid-template-columns: 1fr; }.chart-card, .info-card { background: #111827; border: 1px solid #263246; border-radius: 8px; min-height: 0; }.chart-card { display: flex; flex-direction: column; overflow: hidden; }.info-card { display: flex; flex-direction: column; box-sizing: border-box; height: 100%; min-height: 0; overflow: hidden; }.chart-toolbar { display: flex; align-items: center; gap: 14px; padding: 9px 12px; border-bottom: 1px solid #263246; }.chart-title { flex: 0 0 auto; }.chart-timeframe { flex: 1; overflow-x: auto; }.chart-timeframe .el-radio-button__inner { padding: 6px 10px; }.chart-title { color: rgb(103, 232, 249); font-size: 16px;font-weight: bolder; margin-right:30px;}.chart-actions { display: flex; gap: 8px; }.chart { flex: 1 1 auto; height: auto; min-height: 0; position: relative; }:deep(.pattern-dialog .el-dialog) { max-height: 90vh; margin-top: 5vh !important; margin-bottom: 5vh; display: flex; flex-direction: column; }.pattern-dialog :deep(.el-dialog__body) { min-height: 0; overflow: hidden; }.pattern-dialog :deep(.el-dialog__footer) { flex: 0 0 auto; }.pattern-dialog-content { max-height: calc(90vh - 130px); overflow-y: auto; padding-right: 6px; scrollbar-width: thin; scrollbar-color: #475569 #111827; }.pattern-dialog-content::-webkit-scrollbar { width: 7px; }.pattern-dialog-content::-webkit-scrollbar-track { background: #111827; border-radius: 7px; }.pattern-dialog-content::-webkit-scrollbar-thumb { background: #475569; border-radius: 7px; }.pattern-editor { position: relative; height: 460px; margin: 14px 0 18px; border: 1px solid #334155; border-radius: 6px; overflow: hidden; }.pattern-canvas-viewport { width: 100%; height: 100%; overflow: hidden; }.pattern-canvas-viewport .pattern-editor-canvas { display: block; width: 100%; height: 100%; }.pattern-canvas-zoom-label { margin-left: auto; color: #94a3b8; font-size: 12px; white-space: nowrap; }.pattern-editor.is-fullscreen { height: min(62vh, 680px); }.reverse-pattern-section { margin-top: 18px; }.reverse-pattern-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; color: #cbd5e1; }.reverse-pattern-title span { color: #94a3b8; font-size: 12px; }.reverse-pattern-editor { height: 460px; margin: 0; }.pattern-editor-canvas { display: block; width: 100%; height: 100%; cursor: ns-resize; touch-action: none; }.pattern-editor-help { position: absolute; left: 12px; bottom: 10px; color: #94a3b8; font-size: 12px; pointer-events: none; }.pattern-form { margin-top: 8px; }.pattern-trend-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }.pattern-trend-fields .el-select, .pattern-trend-fields .el-input-number { width: 100%; }.content-grid.is-expanded .chart { height: auto; }.macd-chart { flex: 0 0 150px; height: 150px; min-height: 150px; border-top: 1px solid #263246; }.ai-analysis-card { margin-top: 14px; padding: 16px 18px; background: #111827; border: 1px solid #263246; border-radius: 8px; }.ai-analysis-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }.ai-analysis-header > div:first-child { display: flex; align-items: baseline; gap: 10px; }.ai-analysis-header strong { color: #e2e8f0; font-size: 15px; }.ai-analysis-header span { color: #64748b; font-size: 12px; }.ai-analysis-actions { display: flex; align-items: center; gap: 8px; }.ai-preset-select { width: 190px; }.ai-preset-form-row, .ai-model-form-row { display: flex; align-items: center; gap: 8px; width: 100%; }.ai-preset-form-row .el-select, .ai-model-form-row .el-select { flex: 1; min-width: 0; }.ai-analysis-empty, .ai-analysis-error { margin-top: 12px; padding: 12px; color: #94a3b8; background: #0f172a; border-radius: 6px; font-size: 13px; }.ai-analysis-error { color: #fca5a5; border: 1px solid #7f1d1d; }.ai-analysis-content { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }.ai-result-section { min-width: 0; padding: 14px; background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; }.ai-result-conclusion { grid-column: 1 / -1; }.ai-result-risk { border-color: #713f12; }.ai-section-title { display: flex; align-items: center; gap: 9px; color: #e2e8f0; }.ai-section-title b { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 6px; color: #0f172a; background: #67e8f9; font-size: 13px; }.ai-result-risk .ai-section-title b { background: #fbbf24; }.ai-section-title strong { font-size: 14px; }.ai-section-title span { margin-left: auto; color: #94a3b8; font-size: 12px; }.ai-result-section p, .ai-result-section li { color: #cbd5e1; font-size: 13px; line-height: 1.6; }.ai-result-section > p { margin: 10px 0 0; }.ai-result-section ul { margin: 10px 0 0; padding-left: 20px; }.ai-result-section li + li { margin-top: 6px; }.ai-no-data { color: #64748b !important; }.ai-plan-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }.ai-plan-grid p { margin: 0; padding: 10px; background: #111827; border-radius: 6px; }.ai-plan-grid label { display: block; margin-bottom: 5px; color: #67e8f9; font-size: 12px; }.ai-levels { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }.ai-levels span { padding: 6px 9px; color: #fbbf24; background: #1c1917; border-radius: 5px; font-size: 12px; }.ai-levels small { margin-left: 5px; color: #94a3b8; }.indicator-panel { display: flex; flex-direction: column; gap: 8px; }.indicator-section { display: flex; align-items: center; justify-content: space-between; color: #cbd5e1; }.indicator-row { display: flex; align-items: center; gap: 6px; min-height: 30px; color: #cbd5e1; }.indicator-row .el-input-number { width: 94px; }.indicator-row .el-color-picker { flex: 0 0 auto; }.custom-indicator-row { min-width: 0; }.custom-indicator-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.custom-settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; }.custom-settings-grid .el-input-number, .custom-settings-grid .el-select { width: 100%; }.custom-settings-checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; margin-bottom: 16px; }.custom-color-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }.color-dot { width: 10px; height: 10px; border-radius: 50%; }.legend-item { margin-right: 16px; white-space: nowrap; }.indicator-legend { position: absolute; top: 8px; left: 10px; z-index: 3; color: #cbd5e1; font-size: 12px; pointer-events: none; }.ema-dot { display: inline-block; width: 18px; border-top: 2px solid #f59e0b; margin: 0 6px 3px 0; }.indicator-legend b { margin-left: 8px; color: #cbd5e1; font-weight: 400; }.price-overlay { position: absolute; right: 0; z-index: 3; min-width: 68px; padding: 2px 7px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; background: #0f9f87; color: #fff; font-size: 12px; line-height: 16px; pointer-events: none; }.price-overlay small { font-size: 11px; opacity: .95; }.chart-note { padding: 8px 14px 12px; }.info-card { padding: 14px; }.info-card > .el-divider { margin: 10px 0 12px; }.pattern-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; min-height: 0; overflow: hidden; }.pattern-entry-button, .pattern-library-button { flex: 1 1 calc(50% - 4px); width: calc(50% - 4px); min-width: 0; margin: 0; }.pattern-entry-button { --el-button-bg-color: #102a43; --el-button-border-color: #2563eb; --el-button-text-color: #60a5fa; }.pattern-library-button { --el-button-bg-color: #241b0f; --el-button-border-color: #a16207; --el-button-text-color: #fbbf24; }.locate-pattern-button { --el-button-bg-color: #102a43; --el-button-border-color: #0891b2; --el-button-text-color: #67e8f9; }.scan-favorite-button { --el-button-bg-color: #102a22; --el-button-border-color: #059669; --el-button-text-color: #6ee7b7; }.scan-other-button { --el-button-bg-color: #211735; --el-button-border-color: #7c3aed; --el-button-text-color: #c4b5fd; }.pattern-hint { flex: 0 0 100%; display: block; margin-top: 8px; color: #fbbf24; font-size: 12px; line-height: 1.5; }.pattern-tolerance-row { flex: 0 0 100%; display: flex; align-items: center; gap: 8px; margin-top: 8px; color: #cbd5e1; font-size: 13px; }.pattern-tolerance-row small { color: #64748b; }.pattern-tolerance-row .el-input-number { width: 86px; }.pattern-match-status { flex: 0 0 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; color: #94a3b8; font-size: 12px; }.pattern-match-status .el-button { flex: 0 0 auto; }.pattern-scan-area { flex: 0 0 100%; width: 100%; align-self: stretch; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; margin-top: 6px; min-height: 0; }.pattern-scan-area.has-results { flex: 1 1 auto; min-height: 0; }.pattern-scan-area > .el-button { flex: 0 0 auto; width: 100%; margin: 0; font-size: 13px; }.pattern-scan-status { flex: 0 0 auto; color: #aab8cc; font-size: 13px; line-height: 1.5; }.pattern-scan-results { flex: 1 1 auto; max-height: 425px; min-height: 0; width: 100%; box-sizing: border-box; display: flex; flex-direction: column; flex-wrap: nowrap; gap: 6px; overflow-y: auto; overflow-x: hidden; padding: 2px 5px 2px 0; scrollbar-width: thin; scrollbar-color: #64748b #111827; }.pattern-scan-results::-webkit-scrollbar { width: 6px; }.pattern-scan-results::-webkit-scrollbar-track { background: #111827; border-radius: 6px; }.pattern-scan-results::-webkit-scrollbar-thumb { background: #475569; border-radius: 6px; }.pattern-scan-results::-webkit-scrollbar-thumb:hover { background: #64748b; }.pattern-scan-results .el-button { width: 100%; min-height: 28px; margin: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.info-instructions { display: none; }.info-instructions p { margin: 0 0 10px; line-height: 1.55; }.refresh-interval-input { width: 82px; vertical-align: middle; margin: 0 3px; }.pattern-library-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }.pattern-library-card { min-width: 0; padding: 8px; border: 1px solid #334155; border-radius: 10px; background: #0f172a; }.pattern-card-header, .pattern-card-meta, .pattern-card-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }.pattern-card-header strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.pattern-preview { display: block; width: 100%; height: 92px; margin: 6px 0; background: #111827; border-radius: 6px; }.pattern-grid-line { stroke: #263246; stroke-width: 1; }.pattern-bull { stroke: #26a69a; stroke-width: 2; }.pattern-bear { stroke: #ef5350; stroke-width: 2; }.pattern-bull-fill { fill: #26a69a; }.pattern-bear-fill { fill: #ef5350; }.pattern-card-meta { color: #94a3b8; font-size: 12px; }.pattern-card-actions { justify-content: flex-end; margin-top: 6px; }.pattern-pagination { display: flex; justify-content: center; margin-top: 16px; }.pattern-recording-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }.pattern-recording-toolbar span { margin-right: auto; color: #94a3b8; }.instrument { font-size: 28px; font-weight: 700; color: #67e8f9; margin-bottom: 22px; }.info-row { display: flex; justify-content: space-between; margin: 13px 0; color: #94a3b8; }.info-row b { color: #e5e7eb; }@media (max-width: 900px) { .content-grid { grid-template-columns: 1fr; }.info-card { display: none; } }
 .market-connect { display: flex; align-items: center; justify-content: flex-end; gap: 14px; }.market-connect-main { display: flex; align-items: center; gap: 12px; }.header-instructions {  color: #64748b; font-size: 11px; line-height: 1.45; text-align: right; }.header-instructions .refresh-interval-input { width: 68px; }.toolbar-instructions { display: none; }
 </style>

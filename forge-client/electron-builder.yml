@@ -1,5 +1,5 @@
 # 应用标识符，与 package.json 中一致
-appId: cn.garril.Forge
+appId: cn.forge
 # 产品名
 productName: Forge
 # 版权信息
@@ -29,6 +29,17 @@ compression: maximum
 extraResources:
   - from: "public/icons"
     to: "icons"
+  - from: "../forge-server"
+    to: "forge-server"
+    filter:
+      - "**/*"
+      - "!.git"
+      - "!node_modules"
+      - "!package-lock.json"
+
+extraFiles:
+  - from: "../forge-server/.env"
+    to: "forge-server/.env"
 
 # 发布配置（用于自动更新）[3,6](@ref)
 publish:

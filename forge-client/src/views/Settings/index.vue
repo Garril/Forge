@@ -21,6 +21,16 @@
           <el-button type="primary" class="ml-2" @click="showPasswordDialog">修改密码</el-button>
         </el-form-item>
 
+        <el-form-item label="启动时锁屏">
+          <el-switch
+            v-model="lockEnabled"
+            @change="saveSetting('lock_enabled', lockEnabled ? 'true' : 'false')"
+            active-text="开启"
+            inactive-text="关闭"
+          />
+          <div class="form-tip">关闭后启动应用直接进入主页面；手动锁屏和快捷键也会停用。</div>
+        </el-form-item>
+
         <el-form-item label="全局锁屏快捷键">
           <el-input 
             v-model="lockShortcut" 
@@ -62,7 +72,7 @@
           <div class="bg-upload-container">
             <el-upload
               class="bg-uploader"
-              action="http://localhost:5888/api/settings/upload-bg-multi"
+              action="http://127.0.0.1:5888/api/settings/upload-bg-multi"
               name="files"
               multiple
               :show-file-list="false"
@@ -189,6 +199,7 @@ const router = useRouter()
 
 const password = ref('')
 const lockShortcut = ref('')
+const lockEnabled = ref(false)
 const bgPath = ref('')
 const lockBgPath = ref('')
 const bgMode = ref('cover')
@@ -302,6 +313,7 @@ onMounted(() => {
   password.value = settingsStore.password || ''
   hasPassword.value = !!settingsStore.password
   lockShortcut.value = settingsStore.lockShortcut
+  lockEnabled.value = settingsStore.lockEnabled
   bgPath.value = settingsStore.bgPath
   lockBgPath.value = settingsStore.lockBgPath
   bgMode.value = settingsStore.bgMode
@@ -325,7 +337,7 @@ onUnmounted(() => {
 
 const loadBgs = async () => {
   try {
-    const { data } = await axios.get('http://localhost:5888/api/settings/bgs')
+    const { data } = await axios.get('http://127.0.0.1:5888/api/settings/bgs')
     if (data.success) {
       allBgs.value = data.data
     }
@@ -362,7 +374,7 @@ const savePassword = async () => {
     try {
       // 如果已有密码，需要验证当前密码
       if (hasPassword.value) {
-        const { data: verifyData } = await axios.post('http://localhost:5888/api/settings/verify-password', {
+        const { data: verifyData } = await axios.post('http://127.0.0.1:5888/api/settings/verify-password', {
           password: passwordForm.value.currentPassword
         })
         if (!verifyData.success) {
@@ -447,7 +459,7 @@ const clearLockBg = () => {
 const deleteBg = async (filename) => {
   try {
     await ElMessageBox.confirm('确定要删除这张背景图吗？', '提示', { type: 'warning' })
-    const { data } = await axios.delete(`http://localhost:5888/api/settings/bgs/${filename}`)
+    const { data } = await axios.delete(`http://127.0.0.1:5888/api/settings/bgs/${filename}`)
     if (data.success) {
       ElMessage.success('删除成功')
       if (bgPath.value.includes(filename)) {

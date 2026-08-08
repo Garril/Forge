@@ -24,6 +24,27 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
+const memoTableReady = (async () => {
+  await db.ready;
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS memos (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      title VARCHAR(200) NOT NULL DEFAULT '',
+      content TEXT NOT NULL,
+      attachments JSON,
+      display_type ENUM('permanent', 'random') DEFAULT 'permanent',
+      random_count INT DEFAULT 3,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_display_type (display_type)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+})();
+router.use(async (ctx, next) => {
+  await memoTableReady;
+  await next();
+});
+
 // 获取所有备忘录
 router.get('/', async (ctx) => {
   try {
@@ -58,7 +79,7 @@ router.get('/', async (ctx) => {
 });
 
 // 获取单个备忘录
-router.get('/:id', async (ctx) => {
+router.get('/:id(\\d+)', async (ctx) => {
   try {
     const [rows] = await db.query(
       'SELECT id, title, content, attachments, display_type, random_count, created_at, updated_at FROM memos WHERE id = ?',

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
 
-const API_BASE = 'http://localhost:5888/api'
+const API_BASE = 'http://127.0.0.1:5888/api'
 
 export const useSettingsStore = defineStore('settings', {
   state: () => ({
@@ -10,6 +10,7 @@ export const useSettingsStore = defineStore('settings', {
     lockBgPath: '',
     bgMode: 'cover',
     lockShortcut: 'CommandOrControl+L',
+    lockEnabled: false,
     userName: 'Forge',
     userAvatar: '',
     isDark: false
@@ -26,6 +27,7 @@ export const useSettingsStore = defineStore('settings', {
           this.bgMode = s.bg_mode || 'cover'
           this.userName = s.user_name || 'Forge'
           this.userAvatar = s.user_avatar || ''
+          this.lockEnabled = s.lock_enabled === 'true'
           this.isDark = s.is_dark === 'true'
           
           if (this.isDark) {
@@ -56,6 +58,7 @@ export const useSettingsStore = defineStore('settings', {
           if (key === 'password') this.password = value
           if (key === 'user_name') this.userName = value
           if (key === 'user_avatar') this.userAvatar = value
+          if (key === 'lock_enabled') this.lockEnabled = value === 'true'
           if (key === 'is_dark') {
             this.isDark = value === 'true'
             if (this.isDark) {

@@ -6,7 +6,6 @@
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSettingsStore } from './store/settings'
-
 const router = useRouter()
 const settingsStore = useSettingsStore()
 
@@ -14,6 +13,7 @@ onMounted(async () => {
   // 监听锁屏快捷键
   if (window.electronAPI) {
     window.electronAPI.onLockScreen(() => {
+      if (!settingsStore.lockEnabled) return
       // 如果当前已经在锁屏页面，不再重复锁屏
       const currentPath = router.currentRoute.value.path
       if (currentPath === '/') {
@@ -26,9 +26,6 @@ onMounted(async () => {
       })
     })
   }
-
-  // 加载全局配置
-  await settingsStore.loadSettings()
 })
 </script>
 

@@ -5,6 +5,9 @@
     "start": "concurrently \"npm run start:client\" \"npm run start:server\"",
     "start:client": "cd forge-client && npm start",
     "start:server": "cd forge-server && npm start",
+    "build": "npm run build:client",
+    "build:win": "npm run build:client",
+    "dist": "npm run build:client",
     "build:client": "cd forge-client && npm run build"
   },
   "devDependencies": {

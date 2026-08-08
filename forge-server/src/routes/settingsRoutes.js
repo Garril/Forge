@@ -221,6 +221,13 @@ router.get('/', async (ctx) => {
     rows.forEach(row => {
       settings[row.setting_key] = row.setting_value;
     });
+    if (settings.lock_enabled === undefined) {
+      settings.lock_enabled = 'false';
+      await db.query(
+        'INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?',
+        ['lock_enabled', 'false', 'false']
+      );
+    }
 
     // 迁移旧版背景路径
     const bgKeys = ['background_path', 'lock_bg_path'];
@@ -243,7 +250,12 @@ router.get('/', async (ctx) => {
 });
 
 router.post('/unlock', async (ctx) => {
-  const { password } = ctx.request.body;
+  console.log('[Unlock] request received', {
+    method: ctx.method,
+    path: ctx.path,
+    hasPassword: Boolean(ctx.request.body?.password)
+  });
+  const { password } = ctx.request.body || {};
   try {
     const [rows] = await db.query('SELECT setting_value FROM settings WHERE setting_key = "password"');
     if (rows.length > 0 && rows[0].setting_value === password) {

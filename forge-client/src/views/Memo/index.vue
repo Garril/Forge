@@ -185,7 +185,7 @@ import { Plus, Delete, Edit, Refresh, List, Setting } from '@element-plus/icons-
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 
-const BASE_URL = 'http://localhost:5888'
+const BASE_URL = 'http://127.0.0.1:5888'
 const API_BASE = `${BASE_URL}/api/memos`
 
 // 数据
@@ -257,6 +257,7 @@ const loadMemos = async () => {
     }
     refreshRandomMemos()
   } catch (err) {
+    console.error('加载备忘录失败:', err.response?.data || err.message)
     ElMessage.error('加载备忘录失败')
   }
 }
@@ -349,7 +350,7 @@ const saveMemo = async () => {
     }
 
     dialogVisible.value = false
-    loadMemos()
+    await loadMemos()
   } catch (err) {
     ElMessage.error('保存失败')
   }
