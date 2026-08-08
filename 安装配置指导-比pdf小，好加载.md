@@ -14,6 +14,8 @@ codebuddy打开项目文件夹
 
 用于安装项目依赖
 
+
+**建议：右键 setup-forge.cmd文件，以管理员的身份运行，更好**
 ![图片](https://forupload.oss-cn-guangzhou.aliyuncs.com/img/e969ab68b8cef4a0f2596419dd7ea1e2.png)
 **setup-forge.cmd** 用于检测电脑是否安装npm工具，没有会安装
 如果电脑已经有npm，则会直接跳过，然后自动安装项目依赖 **就是那些node_modules**
@@ -57,6 +59,7 @@ codebuddy打开项目文件夹
 
 用于安装项目依赖，后续一些数据的处理，建议让ai使用python，相较项目框架的js语言，有天然的优势。
 
+**建议：鼠标右键 setup-python.cmd文件，以管理员的身份运行，更好**
 ![图片](https://forupload.oss-cn-guangzhou.aliyuncs.com/img/8ca834133d09bf256bc20583da8f11a8.png)
 运行脚本安装python
 ![图片](https://forupload.oss-cn-guangzhou.aliyuncs.com/img/91dce79ec37e850ceabbeeb229ccb587.png)
@@ -501,10 +504,17 @@ AI 盘面分析不会自动获取或使用：
 bilbil就改个名字换掉 cookies_bilbil.txt
 文件路径在：Forge\video-captioner\cookies_bilbil.txt
 
+
+
 youtube同理，一样的流程，需要就去youtube拿
 
 **依赖需要python**
 ![图片](https://forupload.oss-cn-guangzhou.aliyuncs.com/img/Pasted%20image%2020260808092758.png)
+如果点击后，按钮还是“检测/初始化”，提示：“无法连接后端，请先启动 Forge Server”
+大概率是 ffmpeg安装有问题，（部分指令需要管理员身份运行）解决方法：
+“找到setup-python.cmd ---> 右键 ---> 以管理员身份运行”
+![图片](https://forupload.oss-cn-guangzhou.aliyuncs.com/img/image.png)
+
 
 
 ![图片](https://forupload.oss-cn-guangzhou.aliyuncs.com/img/Pasted%20image%2020260808092900.png)
@@ -520,7 +530,7 @@ youtube同理，一样的流程，需要就去youtube拿
 
 ### 使用
 
-案例如图： https://www.bilibili.com/video/BV1Jz4y1G7Wt/?spm_id_from=333.1387.favlist.content.click&vd_source=1d1a475d9fda02b464d2e04d552b6c55
+案例如图： 网址使用的是 https://www.bilibili.com/video/BV1Jz4y1G7Wt/?spm_id_from=333.1387.favlist.content.click&vd_source=1d1a475d9fda02b464d2e04d552b6c55
 
 ![图片](https://forupload.oss-cn-guangzhou.aliyuncs.com/img/Pasted%20image%2020260808091542.png)
 
